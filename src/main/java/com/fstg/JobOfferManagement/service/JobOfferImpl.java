@@ -39,10 +39,8 @@ public  class JobOfferImpl implements JobOfferService {
 	            String title = dto.getTitle();
 
 	            // Pass the jobOfferId and title to the file storage service
-	            String descriptionPath = fileStorageService.saveDescriptionToFile(pdfFile, (Integer) savedOffer.getJobOfferId(), title);
+	            String descriptionPath = fileStorageService.saveDescriptionToFile(pdfFile, (Integer) savedOffer.getJobOfferId());
 
-	            // Step 4: Update the saved offer with the file path
-	            savedOffer.setDescriptionPath("C:/jobOffersDescriptions/jobOffer_"+ (Integer) savedOffer.getJobOfferId());  // Save the file path as the description path
 	            dao.save(savedOffer);  // Save again with updated description path
 	        } catch (IOException e) {
 	            throw new RuntimeException("Failed to store job description PDF.", e);

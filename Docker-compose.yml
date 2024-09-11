@@ -1,33 +1,34 @@
-version: '3.8'
-
 services:
-  mysql:
-    image: mysql:8.0
-    container_name: mysqlcont
+  postgres:
+    image: postgres:latest
+    container_name: postgres-db-new1
     environment:
-      MYSQL_ROOT_PASSWORD: rootpassword
-      MYSQL_DATABASE: mydatabase
-      MYSQL_USER: myuser
-      MYSQL_PASSWORD: mypassword
+      POSTGRES_DB: job_offer_db_1
+      POSTGRES_USER: your_username
+      POSTGRES_PASSWORD: your_password
     ports:
-      - "3308:3308"
-    networks:
-      - mynetwork
+      - "5434:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
 
   app:
-    image: your-spring-boot-app-image
-    container_name: offer-management
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/mydatabase
-      SPRING_DATASOURCE_USERNAME: myuser
-      SPRING_DATASOURCE_PASSWORD: mypassword
-    ports:
-      - "8083:8083"
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: job_offer_app_new1
     depends_on:
-      - mysql
-    networks:
-      - mynetwork
+      - postgres
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/job_offer_db_1
+      SPRING_DATASOURCE_USERNAME: your_username
+      SPRING_DATASOURCE_PASSWORD: your_password
+    volumes:
+      - jobOffersDescriptions:/app/jobOffersDescriptions
 
-networks:
-  mynetwork:
-    driver: bridge
+volumes:
+  postgres-data:
+    driver: local
+  jobOffersDescriptions:
+    driver: local

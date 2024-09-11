@@ -10,9 +10,13 @@ import org.springframework.data.crossstore.ChangeSetPersister.NotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
 import com.fstg.JobOfferManagement.dto.JobOfferRequestDto;
 import com.fstg.JobOfferManagement.dto.JobOfferResponseDto;
 import com.fstg.JobOfferManagement.service.JobOfferService;
+import com.fstg.JobOfferManagement.service.FileStorageService;
+
 
 import jakarta.validation.Valid;
 
@@ -24,11 +28,13 @@ import org.springframework.http.MediaType;
 @RestController
 @RequestMapping("/JobOffers")
 public class JobOfferController {
+
+	private final  FileStorageService fileStorageService;
+	private final JobOfferService service ;
 	
-	private JobOfferService service ;
-	
-	public JobOfferController(JobOfferService service) {
+	public JobOfferController(JobOfferService service,FileStorageService fileStorageService) {
 		this.service= service ;
+		this.fileStorageService=fileStorageService;
 	}
 	
 	@GetMapping("/Offers")
@@ -37,10 +43,23 @@ public class JobOfferController {
 		return new ResponseEntity<> (service.findAll(),HttpStatus.OK) ;
 	}
 	@PostMapping("/AddOffer")
-	public ResponseEntity<JobOfferResponseDto> save(@ModelAttribute JobOfferRequestDto request) {
-		JobOfferResponseDto dto = service.save(request) ;
-		return new ResponseEntity <> (dto,HttpStatus.CREATED) ;
-	}
+public ResponseEntity<JobOfferResponseDto> save(
+        @RequestParam("pdfFile") MultipartFile file,
+        @Valid @ModelAttribute JobOfferRequestDto request) {
+    
+    // Call the service to save the job offer details
+    JobOfferResponseDto dto = service.save(request);
+    
+    try {
+        // Call the file storage service to save the uploaded file
+        fileStorageService.saveDescriptionToFile(file, dto.getId());
+    } catch (IOException e) {
+        // Handle file storage exceptions
+        return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+    
+    return new ResponseEntity<>(dto, HttpStatus.CREATED);
+}
 	
 	@PutMapping("/Offers/update/{id}")
     public ResponseEntity<JobOfferResponseDto> update(@Valid @RequestBody JobOfferRequestDto produitDto,@PathVariable Integer id) throws NotFoundException {
@@ -72,33 +91,34 @@ public class JobOfferController {
 	}
 
 	@GetMapping("/Offers/file/{id}")
-	public ResponseEntity<byte[]> getJobOfferFileById(@PathVariable Integer id) throws IOException {
-		// Path to the PDF file
-		String filePath = "C:\\jobOffersDescriptions\\jobOffer_" + id + ".pdf";
-		File file = new File(filePath);
+public ResponseEntity<byte[]> getJobOfferFileById(@PathVariable Integer id) throws IOException {
+    // Define the path to the PDF file based on the provided ID
+    String filePath = "/app/jobOffersDescriptions/jobOffer_" + id + ".pdf";
+    File file = new File(filePath);
 
-		if (!file.exists()) {
-			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-		}
+    // Check if the file exists
+    if (!file.exists()) {
+        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    }
 
-		try {
-			// Read the PDF file content into a byte array
-			byte[] fileContent = Files.readAllBytes(file.toPath());
+    try {
+        // Read the PDF file content into a byte array
+        byte[] fileContent = Files.readAllBytes(file.toPath());
 
-			// Set the headers for PDF file download
-			HttpHeaders headers = new HttpHeaders();
-			headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=jobOffer_" + id + ".pdf");
-			headers.setContentType(MediaType.APPLICATION_PDF);
+        // Create HTTP headers for the response
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=jobOffer_" + id + ".pdf");
+        headers.setContentType(MediaType.APPLICATION_PDF);
 
-			// Return the PDF file content as byte[]
-			return ResponseEntity.ok()
-					.headers(headers)
-					.contentLength(file.length())
-					.body(fileContent);
-		} catch (IOException e) {
-			return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-		}
-
+        // Return the PDF file content with appropriate headers
+        return ResponseEntity.ok()
+                .headers(headers)
+                .contentLength(file.length())
+                .body(fileContent);
+    } catch (IOException e) {
+        // Handle the exception and return a server error status
+        return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+    }
 }
 
 
