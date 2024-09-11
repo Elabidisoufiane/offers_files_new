@@ -1,34 +1,38 @@
+
+
 services:
   postgres:
-    image: postgres:latest
-    container_name: postgres-db-new1
+    image: postgres:16
+    container_name: postgres
     environment:
-      POSTGRES_DB: job_offer_db_1
-      POSTGRES_USER: your_username
-      POSTGRES_PASSWORD: your_password
+      POSTGRES_DB: job_offer_db_2
+      POSTGRES_USER: actual_username
+      POSTGRES_PASSWORD: actual_password
     ports:
-      - "5434:5432"
+      - "5432:5432"
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U actual_username"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  app:
+  job-offer-management:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: job_offer_app_new1
+    container_name: job-offer-management
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/job_offer_db_2
+      SPRING_DATASOURCE_USERNAME: actual_username
+      SPRING_DATASOURCE_PASSWORD: actual_password
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     ports:
       - "8080:8080"
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/job_offer_db_1
-      SPRING_DATASOURCE_USERNAME: your_username
-      SPRING_DATASOURCE_PASSWORD: your_password
-    volumes:
-      - jobOffersDescriptions:/app/jobOffersDescriptions
 
 volumes:
-  postgres-data:
-    driver: local
-  jobOffersDescriptions:
-    driver: local
+  postgres_data:

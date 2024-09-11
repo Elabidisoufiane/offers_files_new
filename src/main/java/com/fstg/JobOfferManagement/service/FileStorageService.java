@@ -15,7 +15,7 @@ import java.nio.file.Paths;
 @Service
 public class FileStorageService {
 
-	 private final String UPLOAD_DIR = "/app/jobOffersDescriptions/"; // Directory to store files
+	 private final String UPLOAD_DIR = "jobOffersDescriptions"; // Directory to store files
 
 	public String saveDescriptionToFile(MultipartFile pdfFile, Integer jobOfferId) throws IOException {
         // Ensure the upload directory exists
